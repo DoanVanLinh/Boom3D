@@ -6,11 +6,14 @@ public class Cube : MonoBehaviour
 {
 
     Dictionary<Vector3, Piece> side = new Dictionary<Vector3, Piece>();
+    List<Piece> pieceChild = new List<Piece>();
 
     private bool isBoom;
     private int values = 0;
-    public bool IsBoom { get => isBoom; set { isBoom = value; values = -1; } }
+    private int keyGroup = -1;
+    public bool IsBoom { get => isBoom; set { isBoom = value; } }
     public int Values { get => values; set => values = value; }
+    public int KeyGroup { get => keyGroup; set => keyGroup = value; }
 
     private void Awake()
     {
@@ -41,15 +44,15 @@ public class Cube : MonoBehaviour
             if (side.ContainsKey(Vector3.forward))
                 side[Vector3.forward].gameObject.SetActive(true);
         DestroyEmptySide();
-        SetBoom();
     }
-    void SetBoom()
+    public void SetBoom()
     {
-        if (isBoom)
-            foreach (Transform item in transform)
-            {
-                item.GetComponent<Piece>().SetBoom();
-            }
+        isBoom = true;
+        values = -1;
+        foreach (Transform item in transform)
+        {
+            item.GetComponent<Piece>().SetBoom();
+        }
     }
     void DestroyEmptySide()
     {
@@ -64,7 +67,25 @@ public class Cube : MonoBehaviour
         foreach (Transform item in transform)
         {
             Piece pieceItem = item.GetComponent<Piece>();
+            pieceChild.Add(pieceItem);
             pieceItem.SetNumber(Values);
         }
     }
+    public void OpenAllBox()
+    {
+        int i = 0;
+        pieceChild.Clear();
+        foreach (Transform item in transform)
+            pieceChild.Add(item.GetComponent<Piece>());
+        foreach (Piece item in pieceChild)
+        {
+            if (item != null)
+            {
+                item.OpenBox();
+                i++;
+            }
+        }
+        Debug.LogWarning(i + "/" + pieceChild.Count,gameObject);
+    }
+
 }

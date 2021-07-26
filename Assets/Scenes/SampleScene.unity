@@ -444,13 +444,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 705507993}
-  m_LocalRotation: {x: 0.10938167, y: 0.8754261, z: -0.40821788, w: 0.23456976}
+  m_LocalRotation: {x: 0.028367175, y: 0.34188986, z: -0.91227007, w: -0.2237632}
   m_LocalPosition: {x: 0, y: 3, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 1
-  m_LocalEulerAnglesHint: {x: 50, y: 150, z: 0}
+  m_LocalEulerAnglesHint: {x: 37.669, y: 345.008, z: 147.297}
 --- !u!1 &961465727
 GameObject:
   m_ObjectHideFlags: 0
@@ -732,10 +732,10 @@ MonoBehaviour:
   cube: {fileID: 3428392779195239033, guid: e18da1cf3c0e2714cba7d9c086fe383b, type: 3}
   parentCube: {fileID: 1424317406340013982, guid: bf403e6488a43c342a6999a1267df200,
     type: 3}
-  xDimention: 4
-  yDimention: 4
-  zDimention: 4
-  countBoom: 5
+  xDimention: 5
+  yDimention: 1
+  zDimention: 5
+  countBoom: 3
 --- !u!1 &1724148940
 GameObject:
   m_ObjectHideFlags: 0

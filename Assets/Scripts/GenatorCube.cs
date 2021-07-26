@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 
 public class GenatorCube : MonoBehaviour
 {
@@ -15,12 +16,26 @@ public class GenatorCube : MonoBehaviour
     private List<Vector3> neighborCubeSdieX = new List<Vector3>() { new Vector3(0, 1, 1), new Vector3(0, 1, -1), new Vector3(0, -1, 1), new Vector3(0, -1, -1) };
     private List<Vector3> neighborCubeSdieY = new List<Vector3>() { new Vector3(1, 0, 1), new Vector3(-1, 0, 1), new Vector3(1, 0, -1), new Vector3(-1, 0, -1) };
     private List<Vector3> neighborCubeEdge = new List<Vector3>() { Vector3.up, Vector3.down, Vector3.right, Vector3.left, Vector3.forward, Vector3.back };
-
+    private Dictionary<int, List<Cube>> groupOfEmpty = new Dictionary<int, List<Cube>>();
+    private Cube currentCube;
     private Dictionary<Vector3, Cube> allCube = new Dictionary<Vector3, Cube>();
+    #region Singleton
+    public static GenatorCube instance;
+
+    private void Awake()
+    {
+        if (instance == null)
+            instance = this;
+        else
+            Destroy(gameObject);
+    }
+    #endregion
     void Start()
     {
         SpawnCube();
+        SetBoom();
         SetSideNummber();
+        SetGroupOfEmpty();
     }
 
     // Update is called once per frame
@@ -43,7 +58,7 @@ public class GenatorCube : MonoBehaviour
                     {
                         GameObject cubeClone = Instantiate(cube, new Vector3(x, y, z), Quaternion.identity);
                         allCube.Add(new Vector3(x, y, z), cubeClone.GetComponent<Cube>());
-                        SetSideAndBoom(cubeClone);
+                        cubeClone.GetComponent<Cube>().ActiveSide(xDimention, yDimention, zDimention);
                         cubeClone.transform.parent = parentCube.transform;
                     }
                 }
@@ -51,14 +66,22 @@ public class GenatorCube : MonoBehaviour
         }
 
     }
-    void SetSideAndBoom(GameObject cubeClone)
+    void SetBoom()
     {
-        if (countBoom != 0 && Random.Range(0, 2) == 1)
+        List<Cube> randomBoom = new List<Cube>();
+        while (countBoom != 0)
         {
-            cubeClone.GetComponent<Cube>().IsBoom = true;
-            countBoom--;
+            Cube randomPos = allCube.Values.ElementAt(Random.Range(0, allCube.Count));
+            if (!randomBoom.Contains(randomPos))
+            {
+                randomBoom.Add(randomPos);
+                countBoom--;
+            }
         }
-        cubeClone.GetComponent<Cube>().ActiveSide(xDimention, yDimention, zDimention);
+        foreach (Cube item in randomBoom)
+        {
+            item.GetComponent<Cube>().SetBoom();
+        }
     }
     List<Cube> GetNeighborCube(Vector3 currentCube)
     {
@@ -93,15 +116,93 @@ public class GenatorCube : MonoBehaviour
     }
     void SetSideNummber()
     {
+
         foreach (KeyValuePair<Vector3, Cube> item in allCube)
         {
-            List<Cube> neighbor = GetNeighborCube(item.Key);
-            foreach (Cube child in neighbor)
+            if (!item.Value.IsBoom)
             {
-                if (child.IsBoom)
-                    item.Value.Values++;
+                List<Cube> neighbor = GetNeighborCube(item.Key);
+                foreach (Cube child in neighbor)
+                {
+                    if (child.IsBoom)
+                        item.Value.Values++;
+                }
             }
+        }
+        foreach (KeyValuePair<Vector3, Cube> item in allCube)
+        {
             item.Value.SetValuesAllSide();
+        }
+    }
+    void SetGroupOfEmpty()
+    {
+        int keyOfGroup = 0;
+        foreach (KeyValuePair<Vector3, Cube> item in allCube)
+        {
+            if (item.Value.Values == 0 && item.Value.KeyGroup == -1 && !item.Value.IsBoom)
+            {
+                if (!groupOfEmpty.ContainsKey(keyOfGroup))
+                    groupOfEmpty.Add(keyOfGroup, GetGroupOfEmpty(item.Value, ref keyOfGroup));
+                keyOfGroup++;
+            }
+        }
+    }
+    private List<Cube> GetGroupOfEmpty(Cube currentCube, ref int keyOfGroup)
+    {
+        List<Cube> groupOfET = new List<Cube>();
+        currentCube.KeyGroup = keyOfGroup;
+        if (!groupOfET.Contains(currentCube))
+            groupOfET.Add(currentCube);
+        if (currentCube.Values > 0)
+            return groupOfET;
+        if (currentCube.Values == 0)//is EMPTY
+        {
+            List<Cube> neighbor = GetNeighborEmpty(currentCube.transform.position);
+            foreach (Cube item in neighbor)
+            {
+                groupOfET.AddRange(GetGroupOfEmpty(item, ref keyOfGroup));
+            }
+        }
+        return groupOfET;
+    }
+
+    private List<Cube> GetNeighborEmpty(Vector3 currentCube)
+    {
+        List<Cube> neighbor = new List<Cube>();
+        List<Vector3> neighborCube = new List<Vector3>();
+        //Edge
+        if (((currentCube.z == 0 || currentCube.z == xDimention - 1) && (currentCube.z == 0 || currentCube.z == zDimention - 1)) ||
+            ((currentCube.z == 0 || currentCube.z == xDimention - 1) && (currentCube.y == 0 || currentCube.y == zDimention - 1)) ||
+            ((currentCube.z == 0 || currentCube.z == zDimention - 1) && (currentCube.y == 0 || currentCube.y == zDimention - 1)))
+        {
+            neighborCube.AddRange(neighborCubeEdge);
+            neighborCube.AddRange(neighborCubeSdieX);
+            neighborCube.AddRange(neighborCubeSdieY);
+            neighborCube.AddRange(neighborCubeSdieZ);
+        }
+        else//Side
+        {
+            if (currentCube.x == 0 || currentCube.x == xDimention - 1)
+                neighborCube.AddRange(neighborCubeSdieX);
+            if (currentCube.y == 0 || currentCube.y == yDimention - 1)
+                neighborCube.AddRange(neighborCubeSdieY);
+            if (currentCube.z == 0 || currentCube.z == zDimention - 1)
+                neighborCube.AddRange(neighborCubeSdieZ);
+        }
+        foreach (Vector3 item in neighborCube)
+        {
+            Vector3 key = item + currentCube;
+            if (allCube.ContainsKey(key) && allCube[key].KeyGroup == -1)
+                neighbor.Add(allCube[key]);
+        }
+        return neighbor;
+    }
+    public void OpenGroupOfEmpty(int keyGroup)
+    {
+        List<Cube> group = groupOfEmpty[keyGroup];
+        foreach (Cube item in group)
+        {
+            item.OpenAllBox();
         }
     }
 }

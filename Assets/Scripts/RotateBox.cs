@@ -5,6 +5,8 @@ using UnityEngine;
 public class RotateBox : MonoBehaviour
 {
     private float smooth = GameManager.Instance.SmoothRotateBox;
+
+
     private void Update()
     {
         Rotate();

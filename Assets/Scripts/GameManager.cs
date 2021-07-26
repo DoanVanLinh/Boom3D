@@ -16,6 +16,8 @@ public class GameManager : MonoBehaviour
     float zoomModifierSpeed = 0.1f;
 
     private Camera mainCam;
+    private float timer;
+    private bool isHold;
 
     private static GameManager instance;
 
@@ -32,6 +34,7 @@ public class GameManager : MonoBehaviour
     void Update()
     {
         Zoom();
+        timer += isHold == true ? Time.deltaTime : 0;
     }
     void Singleton()
     {
@@ -68,5 +71,9 @@ public class GameManager : MonoBehaviour
     public void Restart()
     {
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+    public void Test()
+    {
+        
     }
 }
