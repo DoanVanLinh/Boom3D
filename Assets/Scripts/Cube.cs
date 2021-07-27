@@ -9,7 +9,7 @@ public class Cube : MonoBehaviour
     List<Piece> pieceChild = new List<Piece>();
 
     private bool isBoom;
-    private int values = 0;
+    [SerializeField] private int values = 0;
     private int keyGroup = -1;
     public bool IsBoom { get => isBoom; set { isBoom = value; } }
     public int Values { get => values; set => values = value; }
@@ -73,7 +73,6 @@ public class Cube : MonoBehaviour
     }
     public void OpenAllBox()
     {
-        int i = 0;
         pieceChild.Clear();
         foreach (Transform item in transform)
             pieceChild.Add(item.GetComponent<Piece>());
@@ -82,10 +81,7 @@ public class Cube : MonoBehaviour
             if (item != null)
             {
                 item.OpenBox();
-                i++;
             }
         }
-        Debug.LogWarning(i + "/" + pieceChild.Count,gameObject);
     }
-
 }

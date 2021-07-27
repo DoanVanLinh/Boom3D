@@ -2,28 +2,30 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using TMPro;
 
 [RequireComponent(typeof(GenatorCube))]
 public class GameManager : MonoBehaviour
 {
     [SerializeField] float smoothRotateBox;
-
     float touchesPrevPosDifference, touchesCurPosDifference, zoomModifier;
-
     Vector2 firstTouchPrevPos, secondTouchPrevPos;
-
     [SerializeField]
     float zoomModifierSpeed = 0.1f;
+    [SerializeField] private TextMeshProUGUI GameOverTMPro;
 
     private Camera mainCam;
     private float timer;
     private bool isHold;
+    private bool isEnd = false;
 
+
+    #region GetSet
     private static GameManager instance;
-
     public static GameManager Instance { get => instance; set => instance = value; }
     public float SmoothRotateBox { get => smoothRotateBox; set => smoothRotateBox = value; }
-
+    public bool IsEnd { get => isEnd; set => isEnd = value; }
+    #endregion
     void Start()
     {
         mainCam = Camera.main;
@@ -34,6 +36,8 @@ public class GameManager : MonoBehaviour
     void Update()
     {
         Zoom();
+        EndGame();
+        mainCam.useOcclusionCulling = false;
         timer += isHold == true ? Time.deltaTime : 0;
     }
     void Singleton()
@@ -67,13 +71,17 @@ public class GameManager : MonoBehaviour
         }
 
         mainCam.orthographicSize = Mathf.Clamp(mainCam.fieldOfView, 2f, 300f);
+        if (Input.mouseScrollDelta.y > 0)
+            mainCam.fieldOfView -= Time.deltaTime * 100f;
+        if (Input.mouseScrollDelta.y < 0)
+            mainCam.fieldOfView += Time.deltaTime * 100f;
     }
     public void Restart()
     {
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
-    public void Test()
+    public void EndGame()
     {
-        
+        GameOverTMPro.gameObject.SetActive(isEnd);
     }
 }

@@ -2,25 +2,34 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
+using TMPro;
 
 public class GenatorCube : MonoBehaviour
 {
     [SerializeField] private GameObject cube;
     [SerializeField] private GameObject parentCube;
-    [SerializeField] private int xDimention;
-    [SerializeField] private int yDimention;
-    [SerializeField] private int zDimention;
     [SerializeField] private int countBoom;
+    [SerializeField] private GameObject XInput;
+    [SerializeField] private GameObject YInput;
+    [SerializeField] private GameObject ZInput;
 
-    private List<Vector3> neighborCubeSdieZ = new List<Vector3>() { new Vector3(1, 1, 0), new Vector3(-1, 1, 0), new Vector3(1, -1, 0), new Vector3(-1, -1, 0) };
-    private List<Vector3> neighborCubeSdieX = new List<Vector3>() { new Vector3(0, 1, 1), new Vector3(0, 1, -1), new Vector3(0, -1, 1), new Vector3(0, -1, -1) };
-    private List<Vector3> neighborCubeSdieY = new List<Vector3>() { new Vector3(1, 0, 1), new Vector3(-1, 0, 1), new Vector3(1, 0, -1), new Vector3(-1, 0, -1) };
-    private List<Vector3> neighborCubeEdge = new List<Vector3>() { Vector3.up, Vector3.down, Vector3.right, Vector3.left, Vector3.forward, Vector3.back };
-    private Dictionary<int, List<Cube>> groupOfEmpty = new Dictionary<int, List<Cube>>();
-    private Cube currentCube;
-    private Dictionary<Vector3, Cube> allCube = new Dictionary<Vector3, Cube>();
+    private List<Vector3> neighborCubeSdieZ = new List<Vector3>() { new Vector3(1, 1, 0), new Vector3(-1, 1, 0), new Vector3(1, -1, 0), new Vector3(-1, -1, 0), Vector3.up, Vector3.down, Vector3.right, Vector3.left };
+    private List<Vector3> neighborCubeSdieX = new List<Vector3>() { new Vector3(0, 1, 1), new Vector3(0, 1, -1), new Vector3(0, -1, 1), new Vector3(0, -1, -1), Vector3.up, Vector3.down, Vector3.forward, Vector3.back };
+    private List<Vector3> neighborCubeSdieY = new List<Vector3>() { new Vector3(1, 0, 1), new Vector3(-1, 0, 1), new Vector3(1, 0, -1), new Vector3(-1, 0, -1), Vector3.right, Vector3.left, Vector3.forward, Vector3.back };
+    private Dictionary<int, List<Cube>> groupOfEmpty;
+    private Dictionary<Vector3, Cube> allCube;
+    private List<Cube> allBoom;
+    private int xDimention = 5;
+    private int yDimention = 5;
+    private int zDimention = 5;
+    private GameObject parentClone;
     #region Singleton
     public static GenatorCube instance;
+    private Camera mainCam;
+
+    public int XDimention { get => xDimention; set => xDimention = value; }
+    public int YDimention { get => yDimention; set => yDimention = value; }
+    public int ZDimention { get => zDimention; set => zDimention = value; }
 
     private void Awake()
     {
@@ -32,22 +41,39 @@ public class GenatorCube : MonoBehaviour
     #endregion
     void Start()
     {
+        mainCam = Camera.main;
+        Create();
+    }
+    public void Create()
+    {
+        GameManager.Instance.IsEnd = false;
         SpawnCube();
         SetBoom();
         SetSideNummber();
         SetGroupOfEmpty();
+        parentClone.transform.position = new Vector3(mainCam.transform.position.x, mainCam.transform.position.y, parentClone.transform.position.z);
     }
-
-    // Update is called once per frame
-    void Update()
+    void GetInput(ref int dimention, string text)
     {
-
+        if (text != ""&& int.Parse(text)>0)
+            dimention = int.Parse(text);
     }
     void SpawnCube()
     {
-        parentCube = Instantiate(parentCube, new Vector3((xDimention - 1) / 2f, (yDimention - 1) / 2f, (zDimention - 1) / 2f), Quaternion.identity);
+        
+        GetInput(ref xDimention, XInput.GetComponent<TMP_InputField>().text);
+        GetInput(ref yDimention, YInput.GetComponent<TMP_InputField>().text);
+        GetInput(ref zDimention, ZInput.GetComponent<TMP_InputField>().text);
 
-        parentCube.AddComponent<RotateBox>();
+        countBoom = (xDimention * yDimention * zDimention - (xDimention - 1) * (yDimention - 1) * (zDimention - 1))/3;
+
+        groupOfEmpty = new Dictionary<int, List<Cube>>();
+        allCube = new Dictionary<Vector3, Cube>();
+        allBoom = new List<Cube>();
+
+        Destroy(parentClone);
+        parentClone = Instantiate(parentCube, new Vector3((xDimention - 1) / 2f, (yDimention - 1) / 2f, (zDimention - 1) / 2f), Quaternion.identity);
+        parentClone.AddComponent<RotateBox>();
         for (int z = 0; z < zDimention; z++)
         {
             for (int y = 0; y < yDimention; y++)
@@ -59,7 +85,7 @@ public class GenatorCube : MonoBehaviour
                         GameObject cubeClone = Instantiate(cube, new Vector3(x, y, z), Quaternion.identity);
                         allCube.Add(new Vector3(x, y, z), cubeClone.GetComponent<Cube>());
                         cubeClone.GetComponent<Cube>().ActiveSide(xDimention, yDimention, zDimention);
-                        cubeClone.transform.parent = parentCube.transform;
+                        cubeClone.transform.parent = parentClone.transform;
                     }
                 }
             }
@@ -68,51 +94,26 @@ public class GenatorCube : MonoBehaviour
     }
     void SetBoom()
     {
-        List<Cube> randomBoom = new List<Cube>();
         while (countBoom != 0)
         {
             Cube randomPos = allCube.Values.ElementAt(Random.Range(0, allCube.Count));
-            if (!randomBoom.Contains(randomPos))
+            if (!allBoom.Contains(randomPos))
             {
-                randomBoom.Add(randomPos);
+                allBoom.Add(randomPos);
                 countBoom--;
             }
         }
-        foreach (Cube item in randomBoom)
+        foreach (Cube item in allBoom)
         {
             item.GetComponent<Cube>().SetBoom();
         }
     }
-    List<Cube> GetNeighborCube(Vector3 currentCube)
+    public void OpenAllBoom()
     {
-        List<Cube> neighbor = new List<Cube>();
-        List<Vector3> neighborCube = new List<Vector3>();
-        //Edge
-        if (((currentCube.z == 0 || currentCube.z == xDimention - 1) && (currentCube.z == 0 || currentCube.z == zDimention - 1)) ||
-            ((currentCube.z == 0 || currentCube.z == xDimention - 1) && (currentCube.y == 0 || currentCube.y == zDimention - 1)) ||
-            ((currentCube.z == 0 || currentCube.z == zDimention - 1) && (currentCube.y == 0 || currentCube.y == zDimention - 1)))
+        foreach (Cube item in allBoom)
         {
-            neighborCube.AddRange(neighborCubeEdge);
-            neighborCube.AddRange(neighborCubeSdieX);
-            neighborCube.AddRange(neighborCubeSdieY);
-            neighborCube.AddRange(neighborCubeSdieZ);
+            item.OpenAllBox();
         }
-        else//Side
-        {
-            if (currentCube.x == 0 || currentCube.x == xDimention - 1)
-                neighborCube.AddRange(neighborCubeSdieX);
-            if (currentCube.y == 0 || currentCube.y == yDimention - 1)
-                neighborCube.AddRange(neighborCubeSdieY);
-            if (currentCube.z == 0 || currentCube.z == zDimention - 1)
-                neighborCube.AddRange(neighborCubeSdieZ);
-        }
-        foreach (var item in neighborCube)
-        {
-            Vector3 neighborPos = currentCube + item;
-            if (allCube.ContainsKey(neighborPos))
-                neighbor.Add(allCube[neighborPos]);
-        }
-        return neighbor;
     }
     void SetSideNummber()
     {
@@ -134,6 +135,41 @@ public class GenatorCube : MonoBehaviour
             item.Value.SetValuesAllSide();
         }
     }
+    List<Cube> GetNeighborCube(Vector3 currentCube)
+    {
+        List<Cube> neighbor = new List<Cube>();
+        List<Vector3> neighborCube = new List<Vector3>();
+        //Edge
+        if (((currentCube.x == 0 || currentCube.x == xDimention - 1) && (currentCube.z == 0 || currentCube.z == zDimention - 1)) ||
+            ((currentCube.z == 0 || currentCube.z == zDimention - 1) && (currentCube.y == 0 || currentCube.y == yDimention - 1)) ||
+            ((currentCube.x == 0 || currentCube.x == xDimention - 1) && (currentCube.y == 0 || currentCube.y == yDimention - 1)))
+        {
+            neighborCube.AddRange(neighborCubeSdieX);
+            neighborCube.AddRange(neighborCubeSdieY);
+            neighborCube.AddRange(neighborCubeSdieZ);
+        }
+        else//Side
+        {
+            if (currentCube.x == 0 || currentCube.x == xDimention - 1)
+                neighborCube.AddRange(neighborCubeSdieX);
+            if (currentCube.y == 0 || currentCube.y == yDimention - 1)
+                neighborCube.AddRange(neighborCubeSdieY);
+            if (currentCube.z == 0 || currentCube.z == zDimention - 1)
+                neighborCube.AddRange(neighborCubeSdieZ);
+        }
+        HashSet<Vector3> DeleteDuplicate = new HashSet<Vector3>();
+        foreach (var item in neighborCube)
+        {
+            if (DeleteDuplicate.Add(item))
+            {
+                Vector3 neighborPos = currentCube + item;
+                if (allCube.ContainsKey(neighborPos))
+                    neighbor.Add(allCube[neighborPos]);
+            }
+        }
+        return neighbor;
+    }
+
     void SetGroupOfEmpty()
     {
         int keyOfGroup = 0;
@@ -171,11 +207,10 @@ public class GenatorCube : MonoBehaviour
         List<Cube> neighbor = new List<Cube>();
         List<Vector3> neighborCube = new List<Vector3>();
         //Edge
-        if (((currentCube.z == 0 || currentCube.z == xDimention - 1) && (currentCube.z == 0 || currentCube.z == zDimention - 1)) ||
-            ((currentCube.z == 0 || currentCube.z == xDimention - 1) && (currentCube.y == 0 || currentCube.y == zDimention - 1)) ||
-            ((currentCube.z == 0 || currentCube.z == zDimention - 1) && (currentCube.y == 0 || currentCube.y == zDimention - 1)))
+        if (((currentCube.x == 0 || currentCube.x == xDimention - 1) && (currentCube.z == 0 || currentCube.z == zDimention - 1)) ||
+            ((currentCube.z == 0 || currentCube.z == zDimention - 1) && (currentCube.y == 0 || currentCube.y == yDimention - 1)) ||
+            ((currentCube.x == 0 || currentCube.x == xDimention - 1) && (currentCube.y == 0 || currentCube.y == yDimention - 1)))
         {
-            neighborCube.AddRange(neighborCubeEdge);
             neighborCube.AddRange(neighborCubeSdieX);
             neighborCube.AddRange(neighborCubeSdieY);
             neighborCube.AddRange(neighborCubeSdieZ);
@@ -189,11 +224,15 @@ public class GenatorCube : MonoBehaviour
             if (currentCube.z == 0 || currentCube.z == zDimention - 1)
                 neighborCube.AddRange(neighborCubeSdieZ);
         }
+        HashSet<Vector3> DeleteDuplicate = new HashSet<Vector3>();
         foreach (Vector3 item in neighborCube)
         {
-            Vector3 key = item + currentCube;
-            if (allCube.ContainsKey(key) && allCube[key].KeyGroup == -1)
-                neighbor.Add(allCube[key]);
+            if (DeleteDuplicate.Add(item))
+            {
+                Vector3 key = item + currentCube;
+                if (allCube.ContainsKey(key) && allCube[key].KeyGroup == -1)
+                    neighbor.Add(allCube[key]);
+            }
         }
         return neighbor;
     }
@@ -201,8 +240,6 @@ public class GenatorCube : MonoBehaviour
     {
         List<Cube> group = groupOfEmpty[keyGroup];
         foreach (Cube item in group)
-        {
             item.OpenAllBox();
-        }
     }
 }

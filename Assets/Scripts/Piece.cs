@@ -10,13 +10,10 @@ public class Piece : MonoBehaviour
     private int values = 0;
 
     public int Values { get => values; set => values = value; }
-    private void Start()
-    {
-    }
     public void SetBoom()
     {
         values = -1;
-        GameObject boomClone = Instantiate(boomObj, transform.position, Quaternion.identity);
+        GameObject boomClone = Instantiate(boomObj, transform.position, transform.rotation);
         boomClone.transform.parent = transform;
         boomClone.SetActive(false);
     }
@@ -25,7 +22,7 @@ public class Piece : MonoBehaviour
         this.values = values;
         if (values != -1)
         {
-            GameObject numberClone = Instantiate(numbers[values], transform.position, Quaternion.identity);
+            GameObject numberClone = Instantiate(numbers[values], transform.position, transform.rotation);
             numberClone.transform.parent = transform;
             numberClone.SetActive(false);
         }
@@ -42,11 +39,18 @@ public class Piece : MonoBehaviour
     }
     private void OnMouseUp()
     {
-        Cube parent = GetComponentInParent<Cube>();
-        Debug.Log(parent.transform.position);
-        if (parent.Values == 0&&!parent.IsBoom)
-            GenatorCube.instance.OpenGroupOfEmpty(parent.KeyGroup);
-        if(parent.Values != 0)
-            parent.OpenAllBox();
+        if (!GameManager.Instance.IsEnd)
+        {
+            Cube parent = GetComponentInParent<Cube>();
+            if (parent.Values == 0 && !parent.IsBoom)
+                GenatorCube.instance.OpenGroupOfEmpty(parent.KeyGroup);
+            if (parent.Values != 0)
+                parent.OpenAllBox();
+            if (parent.IsBoom)
+            {
+                GenatorCube.instance.OpenAllBoom();
+                GameManager.Instance.IsEnd = true;
+            }
+        }
     }
 }
